@@ -1,7 +1,8 @@
+backend/venv
 frontend/node_modules
 infra/frontend/build
 .env
-
+*.env
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

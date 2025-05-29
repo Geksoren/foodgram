@@ -12,12 +12,12 @@ services:
   backend:
     container_name: foodgram-backend
     build:
-      context: ../backend
+      context: ../backend/
       dockerfile: Dockerfile
     volumes:
       - ../backend:/app
-      - static_volume:/app/static
-      - media_volume:/app/media
+      - static_volume:/app/static/
+      - media_volume:/app/media/
     env_file:
       - .env
     depends_on:

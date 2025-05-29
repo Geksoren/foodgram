@@ -20,6 +20,7 @@ class UserCreateSerializer(BaseUserCreateSerializer):
 
 class UserSerializer(serializers.ModelSerializer):
     is_subscribed = serializers.SerializerMethodField()
+    avatar = serializers.ImageField(required=False)
 
     class Meta:
         model = User
@@ -27,7 +28,10 @@ class UserSerializer(serializers.ModelSerializer):
             'email', 'id', 'username', 'first_name', 'last_name',
             'is_subscribed', 'password', 'avatar'
         )
-        extra_kwargs = {'password': {'write_only': True}}
+        extra_kwargs = {
+            'password': {'write_only': True},
+            'avatar': {'required': False}
+        }
 
     def get_is_subscribed(self, obj):
         request = self.context.get('request')
@@ -149,13 +153,31 @@ class RecipeCreateSerializer(serializers.ModelSerializer):
         return value
 
     def create_ingredients(self, ingredients, recipe):
-        RecipeIngredient.objects.bulk_create([
-            RecipeIngredient(
-                recipe=recipe,
-                ingredient=ingredient['id'],
-                amount=ingredient['amount']
-            ) for ingredient in ingredients
-        ])
+        # Получаем все ингредиенты одним запросом
+        ingredient_names = [i['name'].lower().strip() for i in ingredients]
+        existing_ingredients = Ingredient.objects.filter(
+            name__in=ingredient_names
+        )
+        
+        # Создаем словарь для быстрого поиска
+        ingredient_map = {ing.name.lower(): ing for ing in existing_ingredients}
+        
+        recipe_ingredients = []
+        for ingredient_data in ingredients:
+            name = ingredient_data['name'].lower().strip()
+            ingredient = ingredient_map.get(name)
+            if not ingredient:
+                continue  # Пропускаем если не найден (должен быть проверено в валидации)
+            
+            recipe_ingredients.append(
+                RecipeIngredient(
+                    recipe=recipe,
+                    ingredient=ingredient,
+                    amount=ingredient_data['amount']
+                )
+            )
+        
+        RecipeIngredient.objects.bulk_create(recipe_ingredients)
 
     def create(self, validated_data):
         validated_data['author'] = self.context['request'].user

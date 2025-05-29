@@ -31,6 +31,35 @@ class CustomUserViewSet(UserViewSet):
     pagination_class = CustomPagination
 
     @action(
+        detail=False,
+        methods=['put', 'delete'],
+        url_path='me/avatar',
+        permission_classes=[IsAuthenticated]
+    )
+    def avatar(self, request):
+        user = request.user
+        if request.method == 'PUT':
+            if 'avatar' not in request.FILES:
+                return Response(
+                    {'error': 'No avatar file provided'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.avatar = request.FILES['avatar']
+            user.save()
+            return Response(UserSerializer(user, context={'request': request}).data)
+        
+        elif request.method == 'DELETE':
+            if not user.avatar:
+                return Response(
+                    {'error': 'No avatar to delete'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            user.avatar.delete()
+            user.avatar = None
+            user.save()
+            return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
         detail=True,
         methods=['post', 'delete'],
         permission_classes=[IsAuthenticated]
